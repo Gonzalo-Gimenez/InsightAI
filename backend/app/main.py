@@ -4,8 +4,9 @@ from fastapi import FastAPI, HTTPException
 
 from app.services.ventas_db import fetch_ventas_data
 from app.services.groq_client import ask_groq_with_context
-from app.services.data_analysis import total_ventas, promedio_ventas, venta_maxima, venta_minima, ventas_por_categoria
+from app.services.data_analysis import compute_metrics
 from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.metrics import MetricsResponse
 
 
 app = FastAPI(title="InsightAI")
@@ -22,8 +23,7 @@ def health():
     return {"status": "ok"}
 
 
-@app.post("/api/v1/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
+def _fetch_ventas_metricas():
     try:
         data = fetch_ventas_data()
     except Exception:
@@ -33,20 +33,29 @@ def chat(request: ChatRequest):
     if not data:
         raise HTTPException(status_code=503, detail="PostgreSQL devolvió cero registros")
 
-    total = total_ventas(data)
-    promedio = promedio_ventas(data)
-    maxima = venta_maxima(data)
-    minima = venta_minima(data)
-    por_categoria = ventas_por_categoria(data)
+    return compute_metrics(data), data
 
+
+@app.get("/api/v1/metrics", response_model=MetricsResponse)
+def metrics():
+    metricas, _ = _fetch_ventas_metricas()
+    return metricas
+
+
+@app.post("/api/v1/chat", response_model=ChatResponse)
+def chat(request: ChatRequest):
+    metricas, _ = _fetch_ventas_metricas()
+
+    maxima = metricas["venta_maxima"]
+    minima = metricas["venta_minima"]
     contexto = (
-        f"Total de ventas: {total}\n"
-        f"Promedio de ventas: {promedio}\n"
+        f"Total de ventas: {metricas['total_ventas']}\n"
+        f"Promedio de ventas: {metricas['promedio_ventas']}\n"
         f"Venta máxima: {maxima['producto']} — {maxima['ventas']}\n"
         f"Venta mínima: {minima['producto']} — {minima['ventas']}\n"
         f"Ventas por categoría:\n"
     )
-    for cat, val in por_categoria.items():
+    for cat, val in metricas["ventas_por_categoria"].items():
         contexto += f"- {cat}: {val}\n"
 
     try:

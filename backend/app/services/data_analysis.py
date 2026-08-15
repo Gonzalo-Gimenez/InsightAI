@@ -26,3 +26,13 @@ def ventas_por_categoria(data):
         cat = item["categoria"]
         categorias[cat] = categorias.get(cat, 0) + item["ventas"]
     return categorias
+
+
+def compute_metrics(data):
+    return {
+        "total_ventas": total_ventas(data),
+        "promedio_ventas": promedio_ventas(data),
+        "venta_maxima": venta_maxima(data),
+        "venta_minima": venta_minima(data),
+        "ventas_por_categoria": ventas_por_categoria(data),
+    }
