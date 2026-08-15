@@ -1,0 +1,31 @@
+<main class="shell">
+  <section class="viz">
+    <h1>InsightAI</h1>
+    <p class="subtitle">Ventas 3D en tiempo real desde la base de datos</p>
+
+    @if (error()) {
+      <div class="error">{{ error() }}</div>
+    } @else if (!metrics()) {
+      <div class="loading">Cargando métricas…</div>
+    } @else {
+      <div class="kpis">
+        <div class="kpi">
+          <span class="kpi-label">Total</span>
+          <span class="kpi-value">{{ metrics()!.total_ventas }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Promedio</span>
+          <span class="kpi-value">{{ metrics()!.promedio_ventas }}</span>
+        </div>
+        <div class="kpi">
+          <span class="kpi-label">Máxima</span>
+          <span class="kpi-value">{{ metrics()!.venta_maxima.producto }}</span>
+        </div>
+      </div>
+      <app-chart3d [metrics]="metrics()!" />
+    }
+  </section>
+  <aside class="chat">
+    <app-chat />
+  </aside>
+</main>

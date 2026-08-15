@@ -1,0 +1,87 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1rem;
+  height: 100%;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+
+.viz {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #e6ecff;
+}
+
+.subtitle {
+  margin: 0;
+  color: #7080a8;
+  font-size: 0.9rem;
+}
+
+.error {
+  padding: 1rem;
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  background: rgba(255, 80, 80, 0.1);
+  color: #ff9b9b;
+  border-radius: 8px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  color: #7080a8;
+}
+
+.kpis {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.kpi {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: #7080a8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kpi-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #e6ecff;
+}
+
+app-chart3d {
+  flex: 1;
+  min-height: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chat {
+  min-height: 0;
+}

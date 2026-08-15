@@ -30,3 +30,12 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+# Local Pi runtime state
+.atl/
+
+# Node / Angular
+node_modules/
+.launch
+
+# frontend build output (Angular) — overrides generic dist/
+frontend/dist/
