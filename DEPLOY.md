@@ -2,7 +2,7 @@
 
 ## Backend (Render)
 
-1. Push this repo to `Gonzalo-Gimenez/insightai` on GitHub.
+1. Push this repo to `Gonzalo-Gimenez/InsightAI` on GitHub.
 2. In [Render](https://render.com), **New → Blueprint** and point at the repo (`render.yaml`).
 3. Set **GROQ_API_KEY** when prompted (never commit it).
 4. Set **CORS_ORIGINS** to your Vercel frontend URL(s), comma-separated, e.g.  
@@ -22,5 +22,5 @@ The container runs `seed.sql` on startup when `DATABASE_URL` is set (demo `venta
 
 Update `Portfolio/lib/projects.ts`:
 
-- `repoUrl`: `https://github.com/Gonzalo-Gimenez/insightai`
+- `repoUrl`: `https://github.com/Gonzalo-Gimenez/InsightAI`
 - `demoUrl`: your Vercel frontend URL
