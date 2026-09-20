@@ -1,6 +1,6 @@
 import pytest
 
-from app.schemas.chat import ChatRequest, ChatResponse
+from app.schemas.chat import ChatRequest, ChatResponse, ToolResult
 
 
 def test_pregunta_valida():
@@ -31,3 +31,20 @@ def test_question_limpia_espacios_extremos():
 def test_chat_response_model():
     response = ChatResponse(answer="respuesta")
     assert response.answer == "respuesta"
+
+
+def test_chat_response_con_herramientas():
+    tool = ToolResult(
+        name="ventas_por_categoria",
+        arguments={"categoria": "Electrónica"},
+        result={"Electrónica": 1800},
+    )
+    response = ChatResponse(answer="respuesta", tools=[tool])
+    assert response.answer == "respuesta"
+    assert response.tools[0].name == "ventas_por_categoria"
+    assert response.tools[0].result == {"Electrónica": 1800}
+
+
+def test_chat_response_sin_herramientas_devuelve_lista_vacia():
+    response = ChatResponse(answer="respuesta")
+    assert response.tools == []

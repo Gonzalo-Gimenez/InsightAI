@@ -1,27 +1,33 @@
-# Frontend
+# InsightAI frontend
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.12.
+Next.js 15 (App Router), React 19, TypeScript y Tailwind CSS v4.
 
-## Development server
+## Requisitos
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- Node.js 22+
+- Backend FastAPI en **http://127.0.0.1:8000** (obligatorio para métricas y chat)
 
-## Code scaffolding
+En desarrollo, `next.config.ts` reescribe `/api/*` hacia `http://127.0.0.1:8000/api/*`.
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Desarrollo (PowerShell)
 
-## Build
+```powershell
+cd frontend
+npm install
+npm run dev
+```
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+Abrí http://127.0.0.1:3000 (Next usa el puerto 3000 por defecto).
 
-## Running unit tests
+## Build de producción
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+```powershell
+npm run build
+npm start
+```
 
-## Running end-to-end tests
+## Estructura
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- `app/` layout y página (shell estático en Server Components)
+- `components/` chat, métricas, gráfico 3D (Client Components)
+- `lib/api.ts` tipos y llamadas a `/api/v1/metrics` y `/api/v1/chat`

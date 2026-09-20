@@ -44,11 +44,15 @@ def ask_groq_with_tools(question, tool_defs, execute_tool):
     y el resultado se devuelve al LLM para que redacte la respuesta final.
     execute_tool debe recibir (tool_name, arguments) y devolver datos Python
     serializables.
+
+    Devuelve (respuesta, herramientas_ejecutadas) donde herramientas_ejecutadas
+    es una lista de dicts {"name", "arguments", "result"} en orden de ejecución.
     """
     messages = [
         {"role": "system", "content": _SISTEMA_PROMPT},
         {"role": "user", "content": question},
     ]
+    herramientas_ejecutadas = []
 
     for _round in range(MAX_TOOL_ROUNDS):
         try:
@@ -68,7 +72,7 @@ def ask_groq_with_tools(question, tool_defs, execute_tool):
         if not message.tool_calls:
             if not message.content:
                 raise ValueError("Groq no devolvió contenido de texto")
-            return message.content
+            return message.content, herramientas_ejecutadas
 
         assistant_message = {
             "role": "assistant",
@@ -94,6 +98,10 @@ def ask_groq_with_tools(question, tool_defs, execute_tool):
             except Exception as exc:  # noqa: BLE001
                 _logger.exception("Error al ejecutar la herramienta %s", call.function.name)
                 result = {"error": f"Error al ejecutar la herramienta: {exc}"}
+
+            herramientas_ejecutadas.append(
+                {"name": call.function.name, "arguments": arguments, "result": result}
+            )
 
             messages.append(
                 {

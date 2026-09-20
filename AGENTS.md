@@ -53,8 +53,10 @@ The final application should be understandable, maintainable, testable, and depl
 
 ### Frontend
 
-* Angular
+* Next.js 15 (App Router)
+* React 19
 * TypeScript
+* Tailwind CSS v4
 
 ### Infrastructure
 
@@ -333,7 +335,7 @@ do NOT introduce:
 * RAG
 * embeddings
 * vector databases
-* Angular
+* Next.js UI (unless the current increment is backend-only)
 * charts
 * n8n
 * deployment

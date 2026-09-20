@@ -57,17 +57,17 @@ The LLM **never generates or executes SQL** and **never generalizes beyond the c
      | ConvertTo-Json
    ```
 
-### Frontend (Angular + three.js)
+### Frontend (Next.js + three.js)
 
-> Scaffold created with Angular CLI 18. Requires Node 22+.
+> Requires Node 22+. The backend must listen on **http://127.0.0.1:8000**.
 
 ```powershell
 cd frontend
 npm install
-npm start           # open http://127.0.0.1:4200
+npm run dev          # open http://127.0.0.1:3000
 ```
 
-The dev server proxies `/api/*` requests to `http://127.0.0.1:8000` (see `proxy.conf.json`) — the backend must be running for data to appear.
+`next.config.ts` rewrites `/api/*` to `http://127.0.0.1:8000/api/*` during local development. Start the FastAPI server before using metrics or chat.
 
 ## How it works
 
@@ -145,14 +145,22 @@ backend/
 ├── requirements.txt             # Pinned dependencies
 └── setup_db.sql                 # Schema + seed data
 docker-compose.yml               # PostgreSQL 15 service
+frontend/                        # Next.js 15 UI (metrics 3D + chat)
 ```
+
+## Public demo
+
+Deploy the API (Render blueprint in `render.yaml`) and the Next.js app on Vercel (`frontend/`, set `NEXT_PUBLIC_API_URL`). Step-by-step: [DEPLOY.md](./DEPLOY.md).
+
+The UI uses **demo sales data** seeded in PostgreSQL — not a real client dataset.
 
 ## Roadmap
 
 - [x] FastAPI API + Groq chat
 - [x] PostgreSQL + Python data analysis
 - [x] Tests (unit + real DB integration)
-- [ ] Read-only SQL generation from questions (safe, validated) — or a frontend (Angular) to chat with the API
+- [ ] Read-only SQL generation from questions (safe, validated)
+- [x] Next.js frontend to chat with the API and visualize metrics
 
 ## Requirements
 

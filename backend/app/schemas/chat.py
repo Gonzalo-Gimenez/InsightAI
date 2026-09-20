@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -14,3 +16,10 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    tools: list["ToolResult"] = []
+
+
+class ToolResult(BaseModel):
+    name: str
+    arguments: dict = {}
+    result: Optional[dict | list | int | float | str] = None

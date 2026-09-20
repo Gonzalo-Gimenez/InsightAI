@@ -33,9 +33,14 @@ build/
 # Local Pi runtime state
 .atl/
 
-# Node / Angular
+# Node / Next.js
 node_modules/
 .launch
+frontend/.next/
+frontend/out/
 
-# frontend build output (Angular) — overrides generic dist/
+# frontend build output — overrides generic dist/
 frontend/dist/
+
+# Local agent metadata
+.gga/
