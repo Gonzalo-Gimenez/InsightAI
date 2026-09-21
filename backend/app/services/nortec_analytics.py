@@ -23,8 +23,7 @@ def date_bounds() -> tuple[date, date]:
 
 def default_period() -> tuple[date, date]:
     min_d, max_d = date_bounds()
-    window_start = max(min_d, max_d - timedelta(days=29))
-    return window_start, max_d
+    return months_back(max_d, 12, min_d), max_d
 
 
 def months_back(hasta: date, meses: int, min_d: date) -> date:

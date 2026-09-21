@@ -26,7 +26,7 @@ export function formatDelta(value: number | null | undefined): string {
 
 export function formatPeriod(from?: string | null, to?: string | null): string {
   if (!from || !to) {
-    return "Últimos 30 días";
+    return "Últimos 12 meses";
   }
   return `${from} → ${to}`;
 }

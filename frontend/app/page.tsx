@@ -1,20 +1,25 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
-const WorkspaceShell = dynamic(
-  () =>
-    import("@/components/workspace/workspace-shell").then((mod) => ({
-      default: mod.WorkspaceShell,
-    })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-dvh bg-zinc-950" aria-busy="true" aria-label="Cargando workspace" />
-    ),
-  },
-);
+import { WorkspaceShell } from "@/components/workspace/workspace-shell";
 
 export default function HomePage() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div
+        className="h-dvh bg-zinc-950"
+        aria-busy="true"
+        aria-label="Cargando workspace"
+      />
+    );
+  }
+
   return <WorkspaceShell />;
 }

@@ -21,7 +21,7 @@ def _sistema_prompt() -> str:
         desde, hasta = date_bounds()
         rango = (
             f" Los datos van de {desde.isoformat()} a {hasta.isoformat()}. "
-            "KPIs: últimos 30 días. serie_mensual usa meses (entero): 5 = mes actual y 4 anteriores. "
+            "Vista inicial: últimos 12 meses (KPIs y gráficos). serie_mensual usa meses (entero): 5 = mes actual y 4 anteriores. "
             "Nunca envíes null ni fecha_desde/fecha_hasta. Omití las claves que no uses. "
         )
     except Exception:
