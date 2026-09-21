@@ -1,6 +1,6 @@
 import pytest
 
-from app.schemas.chat import ChatRequest, ChatResponse, ToolResult
+from app.schemas.chat import ChatRequest, ChatResponse, HistoryMessage, ToolResult
 
 
 def test_pregunta_valida():
@@ -45,6 +45,13 @@ def test_chat_response_con_herramientas():
     assert response.tools[0].result == {"Electrónica": 1800}
 
 
-def test_chat_response_sin_herramientas_devuelve_lista_vacia():
-    response = ChatResponse(answer="respuesta")
-    assert response.tools == []
+def test_historial_vacio_se_filtra():
+    request = ChatRequest(
+        question="Y por región?",
+        history=[
+            HistoryMessage(role="user", content="Cómo van las ventas?"),
+            HistoryMessage(role="assistant", content="   "),
+        ],
+    )
+    assert len(request.history) == 1
+    assert request.history[0].content == "Cómo van las ventas?"

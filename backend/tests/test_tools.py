@@ -1,113 +1,84 @@
+from unittest.mock import patch
+
 import pytest
 
-from app.services.tools import (
-    tool_definitions,
-    execute_tool,
-    ventas_por_region,
-    ventas_filtradas,
-)
-
-SAMPLE = [
-    {"producto": "Laptop", "categoria": "Electrónica", "region": "Norte", "ventas": 1500},
-    {"producto": "Mouse", "categoria": "Accesorios", "region": "Sur", "ventas": 120},
-    {"producto": "Teclado", "categoria": "Accesorios", "region": "Norte", "ventas": 80},
-    {"producto": "Monitor", "categoria": "Electrónica", "region": "Sur", "ventas": 300},
-    {"producto": "Impresora", "categoria": "Oficina", "region": "Norte", "ventas": 200},
-]
+from app.services.tools import tool_definitions, execute_tool
 
 
 def test_tool_definitions_solo_json_schema():
     defs = tool_definitions()
-    assert len(defs) == 6
+    assert len(defs) >= 10
     for tool in defs:
         assert tool["type"] == "function"
         assert "name" in tool["function"]
-        assert "description" in tool["function"]
-        assert "parameters" in tool["function"]
         assert "executor" not in tool
 
 
-def test_tool_definitions_incluyen_herramientas_esperadas():
+def test_tool_definitions_incluyen_nortec():
     nombres = {t["function"]["name"] for t in tool_definitions()}
-    assert nombres == {
-        "total_ventas",
-        "ventas_por_categoria",
-        "ventas_por_region",
-        "venta_maxima",
-        "venta_minima",
-        "ventas_filtradas",
-    }
+    assert "kpis_periodo" in nombres
+    assert "consultar_sql" in nombres
+    assert "listar_esquema" in nombres
 
 
-def test_execute_total_ventas():
-    assert execute_tool("total_ventas", {}, SAMPLE) == 2200
+@patch("app.services.tools.na.listar_esquema")
+def test_execute_listar_esquema(mock_listar):
+    mock_listar.return_value = {"tablas": ["fact_ventas"]}
+    result = execute_tool("listar_esquema", {})
+    assert result["tablas"] == ["fact_ventas"]
 
 
-def test_execute_ventas_por_categoria():
-    assert execute_tool("ventas_por_categoria", {}, SAMPLE) == {
-        "Electrónica": 1800,
-        "Accesorios": 200,
-        "Oficina": 200,
-    }
+@patch("app.services.tools.run_validated_select")
+@patch("app.services.tools.validate_readonly_select")
+def test_execute_consultar_sql(mock_validate, mock_run):
+    mock_validate.return_value = "SELECT 1"
+    mock_run.return_value = [{"x": 1}]
+    result = execute_tool("consultar_sql", {"sql": "SELECT 1 FROM v_ventas_linea"})
+    assert result["count"] == 1
 
 
-def test_execute_ventas_por_region():
-    assert execute_tool("ventas_por_region", {}, SAMPLE) == {
-        "Norte": 1780,
-        "Sur": 420,
-    }
+def test_tools_no_exponen_fechas():
+    for tool in tool_definitions():
+        props = tool["function"]["parameters"].get("properties") or {}
+        assert "fecha_desde" not in props
+        assert "fecha_hasta" not in props
 
 
-def test_execute_venta_maxima():
-    assert execute_tool("venta_maxima", {}, SAMPLE)["producto"] == "Laptop"
-    assert execute_tool("venta_maxima", {}, SAMPLE)["ventas"] == 1500
-
-
-def test_execute_venta_minima():
-    assert execute_tool("venta_minima", {}, SAMPLE)["producto"] == "Teclado"
-    assert execute_tool("venta_minima", {}, SAMPLE)["ventas"] == 80
-
-
-def test_execute_ventas_filtradas_por_categoria():
-    resultado = execute_tool(
-        "ventas_filtradas", {"categoria": "Electrónica"}, SAMPLE
+@patch("app.services.tools.na.serie_mensual")
+def test_execute_omite_fechas_null(mock_serie):
+    mock_serie.return_value = {"serie": []}
+    execute_tool(
+        "serie_mensual",
+        {"fecha_desde": None, "fecha_hasta": None, "metrica": "ingresos"},
     )
-    assert [r["producto"] for r in resultado] == ["Laptop", "Monitor"]
-
-
-def test_execute_ventas_filtradas_por_region():
-    resultado = execute_tool("ventas_filtradas", {"region": "Sur"}, SAMPLE)
-    assert [r["producto"] for r in resultado] == ["Mouse", "Monitor"]
-
-
-def test_execute_ventas_filtradas_sin_filtros_devuelve_todo():
-    resultado = execute_tool("ventas_filtradas", {}, SAMPLE)
-    assert len(resultado) == 5
-
-
-def test_execute_ventas_filtradas_con_ambos_filtros():
-    resultado = execute_tool(
-        "ventas_filtradas", {"categoria": "Electrónica", "region": "Sur"}, SAMPLE
+    mock_serie.assert_called_once_with(
+        fecha_desde=None,
+        fecha_hasta=None,
+        metrica="ingresos",
+        meses=None,
+        sucursal=None,
+        anio=None,
     )
-    assert [r["producto"] for r in resultado] == ["Monitor"]
+
+
+def test_tools_exponen_sucursal_y_anio():
+    scoped = {
+        "kpis_periodo",
+        "serie_mensual",
+        "ranking_productos",
+        "mix_categoria",
+        "mix_region",
+        "mix_canal",
+    }
+    for tool in tool_definitions():
+        name = tool["function"]["name"]
+        if name not in scoped:
+            continue
+        props = tool["function"]["parameters"].get("properties") or {}
+        assert "sucursal" in props, name
+        assert "anio" in props, name
 
 
 def test_execute_tool_desconocido():
     with pytest.raises(ValueError, match="Herramienta desconocida"):
-        execute_tool("no_existe", {}, SAMPLE)
-
-
-def test_execute_tool_herramienta_sin_args_rechaza_argumentos():
-    with pytest.raises(ValueError):
-        execute_tool("total_ventas", {"categoria": "Electrónica"}, SAMPLE)
-
-
-def test_ventas_filtradas_valida_tipos():
-    with pytest.raises(ValueError, match="categoria"):
-        ventas_filtradas(SAMPLE, categoria=123)
-    with pytest.raises(ValueError, match="region"):
-        ventas_filtradas(SAMPLE, region=42)
-
-
-def test_ventas_filtradas_sin_match_devuelve_vacio():
-    assert ventas_filtradas(SAMPLE, categoria="Inexistente") == []
+        execute_tool("no_existe", {})

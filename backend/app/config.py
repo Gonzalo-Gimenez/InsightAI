@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     POSTGRES_DB: str = "insight_ai"
     POSTGRES_USER: str = "insight_ai"
     POSTGRES_PASSWORD: str = ""
+    POSTGRES_RO_USER: str = ""
+    POSTGRES_RO_PASSWORD: str = ""
 
     @model_validator(mode="after")
     def apply_database_url(self):

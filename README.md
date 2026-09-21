@@ -1,10 +1,11 @@
 # InsightAI
 
-Ask business questions in natural language and get data-driven answers computed from a real database, with an AI layer that never invents numbers.
+Ask business questions in natural language and get answers computed from a real PostgreSQL warehouse. The model never invents numbers: Groq picks tools or a validated read-only SELECT, FastAPI runs them, and the canvas (KPIs + charts) follows the same filters as the chat.
 
-InsightAI is an AI-powered data analysis API. A user asks a question in Spanish, the backend computes real metrics from PostgreSQL using Python, and an LLM (Groq) turns those verified facts into a clear, conversational answer.
+**Live demo:** https://insightai-frontend.vercel.app  
+**Stack:** FastAPI · PostgreSQL (Nortec retail, mar 2024–sep 2026) · Groq tool calling · Next.js 15
 
-The LLM **never generates or executes SQL** and **never generalizes beyond the computed facts**: Python owns the data, the model summarizes it. This keeps the system safe, verifiable, and honest — no hallucinated numbers.
+InsightAI is a conversational BI workspace. A user asks a question in Spanish, the backend computes real metrics from PostgreSQL, and Groq turns those verified facts into a clear answer. The LLM **does not execute SQL on its own**.
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-green)
@@ -13,21 +14,21 @@ The LLM **never generates or executes SQL** and **never generalizes beyond the c
 
 ## Quick start
 
+InsightAI es un monorepo: **backend** (FastAPI) y **frontend** (Next.js) son carpetas separadas. No hay `npm run dev` en la raíz del repo salvo los scripts de conveniencia abajo.
+
 1. **Start PostgreSQL** (Docker Desktop must be running):
    ```powershell
    docker compose up -d
    ```
    > compose fails fast if `POSTGRES_PASSWORD` is not set — see `.env.example` at the repo root, and copy it to `.env`.
 
-2. **Create the database and seed data** (byte-safe: copy the script into the container and run psql inside it, so UTF-8 accents are never mangled by the shell):
+2. **Cargar el warehouse Nortec** (~190k líneas de ventas, estrella dim/fact, mar 2024–sep 2026). Con Docker arriba y `backend/.env` apuntando a `localhost:5433`:
    ```powershell
-   docker cp backend/setup_db.sql insight_ai_postgres:/tmp/setup_db.sql
-   docker exec insight_ai_postgres psql -U insight_ai -d insight_ai -f /tmp/setup_db.sql
+   cd backend
+   .\.venv\Scripts\Activate.ps1
+   python -m scripts.seed_nortec
    ```
-   The script is idempotent — running it again inserts nothing. To rebuild from scratch, drop the table first:
-   ```powershell
-   docker exec insight_ai_postgres psql -U insight_ai -d insight_ai -c "DROP TABLE IF EXISTS ventas;"
-   ```
+   Demo rápida (menos filas): `python -m scripts.seed_nortec --rows 8000`. El script es determinista (`--seed 42`) y recrea el schema (`schema_nortec.sql`).
 
 3. **Configure the backend**: copy `backend/.env.example` to `backend/.env` and set your keys:
    ```powershell
@@ -43,11 +44,18 @@ The LLM **never generates or executes SQL** and **never generalizes beyond the c
    python -m pip install -r requirements.txt
    ```
 
-5. **Run the API**:
+5. **Run the API** (desde `backend/`, con el venv activado):
    ```powershell
-   python -m uvicorn app.main:app --reload
+   cd backend
+   .\.venv\Scripts\Activate.ps1
+   python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
    ```
-   Open http://localhost:8000 — the interactive Swagger docs are at http://localhost:8000/docs.
+   Open http://127.0.0.1:8000 — Swagger: http://127.0.0.1:8000/docs.
+
+   **Atajo desde la raíz del repo** (PowerShell/cmd, con venv ya creado en `backend/.venv`):
+   ```powershell
+   npm run dev:backend
+   ```
 
 6. **Use it**:
    ```powershell
@@ -67,6 +75,8 @@ npm install
 npm run dev          # open http://127.0.0.1:3000
 ```
 
+Desde la raíz del repo: `npm run dev:frontend` (en otra terminal, con el backend ya en marcha).
+
 `next.config.ts` rewrites `/api/*` to `http://127.0.0.1:8000/api/*` during local development. Start the FastAPI server before using metrics or chat.
 
 ## How it works
@@ -75,20 +85,18 @@ npm run dev          # open http://127.0.0.1:3000
 User question
       │
       ▼
-┌─────────────┐   ┌──────────────────┐   ┌──────────────────────┐
-│  FastAPI    │──▶│  Python metrics   │──▶│  Groq LLM (no SQL)   │
-│  /api/v1/   │   │  total, promedio, │   │  summarizes facts    │
-│  chat       │◀──│  max, min, by     │◀──│  only — never invents│
-│             │   │  category         │   │  numbers             │
-└─────────────┘   └──────────────────┘   └──────────────────────┘
+┌─────────────┐     tool calling loop (Groq)
+│  FastAPI    │──▶  SQL tools: KPIs, series, rankings, mix…
+│  /api/v1/   │     consultar_sql → validator → read-only SELECT
+│  chat       │◀──  answer + tools[] + ViewSpec → canvas React
+└─────────────┘
       │
       ▼
-  PostgreSQL (Docker, port 5433)
-  ventas table — fixed read-only SQL
+  PostgreSQL Nortec (~190k fact_ventas, mar 2024–sep 2026)
 ```
 
-- **Fixed SQL only**: `ventas_db.py` runs a static `SELECT`. The LLM has no database access and no SQL-generation rights.
-- **Facts first**: all metrics are computed in Python and passed to the model as ground truth.
+- **Tool calling**: the model must use tools for numbers; the API returns `{ answer, tools[], view? }` for auditability and UI sync.
+- **Validated SQL**: ad-hoc questions use `consultar_sql` with allowlisted `SELECT` only (optional read-only DB user locally).
 - **Safe errors**: 503/401/429/500 with sanitized messages; raw exceptions stay in server logs only.
 
 ## API
@@ -96,9 +104,9 @@ User question
 | Method | Path          | Description                                 |
 |--------|---------------|---------------------------------------------|
 | GET    | `/`           | Service banner                              |
-| GET    | `/health`     | Liveness check                              |
-| GET    | `/api/v1/metrics` | Structured metrics (for charts / 3D viz) |
-| POST   | `/api/v1/chat`| `{ "question": "..." }` → `{ "answer": "..." }` |
+| GET    | `/health`     | Liveness + PostgreSQL ping (`fact_ventas_rows`) |
+| GET    | `/api/v1/metrics` | `{ view: { period, kpis, charts } }` workspace default |
+| POST   | `/api/v1/chat`| `{ question, history? }` → `{ answer, tools, view? }` |
 
 ## Environment variables
 
@@ -126,8 +134,13 @@ python -m pytest tests -v
 | Suite                 | Type         | Covers                              |
 |-----------------------|--------------|-------------------------------------|
 | `test_data_analysis.py` | unit        | All metrics + empty-data edge cases  |
+| `test_tools.py`         | unit        | Tool registry + executors             |
+| `test_sql_validator.py` | unit        | Read-only SELECT guard                |
+| `test_groq_client.py`   | unit        | Groq tool loop (mocked)               |
+| `test_chat_endpoint.py` | unit        | `/chat` contract (mocked)             |
 | `test_chat_schema.py`   | unit        | Input validation                    |
-| `test_ventas_db.py`     | integration | Real PostgreSQL fetch — **skips** honestly when no DB is available, never fakes success |
+| `test_metrics_endpoint.py` | integration | `/metrics` — skips if DB is down |
+| `test_ventas_db.py`     | integration | Real PostgreSQL fetch — **skips** honestly when no DB is available |
 
 ## Project structure
 
@@ -139,8 +152,10 @@ backend/
 │   ├── schemas/chat.py          # Request/response validation
 │   └── services/
 │       ├── data_analysis.py     # Pure Python metrics
-│       ├── groq_client.py       # Groq boundary — typed error mapping
-│       └── ventas_db.py         # PostgreSQL data access (fixed SQL)
+│       ├── tools.py             # Tool calling registry + executors
+│       ├── sql_validator.py     # Read-only SELECT validation
+│       ├── groq_client.py       # Groq tool-calling loop
+│       └── ventas_db.py         # PostgreSQL access + validated SELECT
 ├── tests/                       # Unit + integration tests
 ├── requirements.txt             # Pinned dependencies
 └── setup_db.sql                 # Schema + seed data
@@ -159,7 +174,7 @@ The UI uses **demo sales data** seeded in PostgreSQL — not a real client datas
 - [x] FastAPI API + Groq chat
 - [x] PostgreSQL + Python data analysis
 - [x] Tests (unit + real DB integration)
-- [ ] Read-only SQL generation from questions (safe, validated)
+- [x] Read-only SQL via `consultar_sql` (validated SELECT)
 - [x] Next.js frontend to chat with the API and visualize metrics
 
 ## Requirements

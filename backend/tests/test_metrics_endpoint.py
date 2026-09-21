@@ -7,24 +7,14 @@ client = TestClient(app)
 
 
 def test_metrics_endpoint_contra_postgres_real():
-    """Integration test: GET /api/v1/metrics contra PostgreSQL real.
-
-    Si la infraestructura (contenedor postgres) está disponible, verifica el
-    contrato del JSON que consumirá el frontend. Si no, se salta sin simular éxito.
-    """
-    try:
-        response = client.get("/api/v1/metrics")
-    except Exception as exc:  # noqa: BLE001
-        pytest.skip(f"PostgreSQL no disponible en este entorno: {exc}")
+    response = client.get("/api/v1/metrics")
+    if response.status_code == 503:
+        pytest.skip("PostgreSQL Nortec no disponible en este entorno")
 
     assert response.status_code == 200
 
     body = response.json()
-    assert isinstance(body["total_ventas"], int)
-    assert isinstance(body["promedio_ventas"], float)
-    assert body["venta_maxima"]["producto"]
-    assert body["venta_minima"]["producto"]
-    assert isinstance(body["ventas_por_categoria"], dict)
-    assert all(
-        isinstance(ventas, int) for ventas in body["ventas_por_categoria"].values()
-    )
+    view = body["view"]
+    assert "kpis" in view
+    assert isinstance(view["kpis"]["ingresos"], (int, float))
+    assert isinstance(view["charts"], list)
