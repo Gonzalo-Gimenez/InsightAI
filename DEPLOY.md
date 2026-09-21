@@ -9,7 +9,7 @@
    `https://insightai.vercel.app,https://insightai-*.vercel.app`
 5. After deploy, note the API URL (e.g. `https://insightai-api.onrender.com`). Run `/health` to confirm (`database: up`).
 
-The container runs `seed.sql` on startup when `DATABASE_URL` is set (demo `ventas` data).
+The container seeds the Nortec warehouse on first boot when `DATABASE_URL` is set (`python -m scripts.seed_nortec`). Later deploys skip seed if `fact_ventas` already has rows.
 
 **Cold start:** on Render free tier the API may sleep; the first request after idle can take 30–60s before chat/metrics respond.
 
